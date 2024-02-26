@@ -1,0 +1,142 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: wr1-
+spec:
+  entrypoint: source
+  arguments:
+    parameters:
+      - name: pairs-list
+        value: |
+          [
+            { "date": "20210715", "tile": "T31TCJ" },
+            { "date": "20210815", "tile": "T31TCJ" },
+            { "date": "20210915", "tile": "T31TCJ" }
+          ]
+
+  templates: 
+
+  - name: generate-volume
+    serviceAccountName: argo
+    resource:
+      action: create
+      setOwnerReference: true
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          generateName: pvc-
+        spec:
+          accessModes: ['ReadWriteOnce']
+          resources:
+            requests:
+              storage: 200Mi
+    outputs:
+      parameters:
+        - name: pvc-name
+          valueFrom:
+            jsonPath: '{.metadata.name}'
+              
+  - name: ndpi
+    serviceAccountName: argo
+    inputs:
+      parameters:
+        - name: pvc-name
+        - name: tile
+        - name: date
+      artifacts:
+        - name: B4
+          path: /tmp/input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B4.tif
+          archive:
+            none: {}
+          s3:
+            key: input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B4.tif
+        - name: B8
+          path: /tmp/input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B8.tif
+          archive:
+            none: {}
+          s3:
+            key: input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B8.tif
+    volumes:
+      - name: workdir
+        persistentVolumeClaim:
+          claimName: "{{inputs.parameters.pvc-name}}"
+    container:
+      image: localhost:5000/orfeo:latest
+      command: [python3, /usr/local/bin/ndpi.py]
+      args: [--src, "{{inputs.artifacts.B4.path}}", "{{inputs.artifacts.B8.path}}", --dst, "/home/", --date, "{{inputs.parameters.date}}", --tile, "{{inputs.parameters.tile}}"]
+      volumeMounts:
+        - name: workdir
+          mountPath: /home
+          
+  - name: water-mask
+    serviceAccountName: argo
+    inputs:
+      parameters:
+        - name: pvc-name
+        - name: tile
+        - name: date
+    volumes:
+      - name: workdir
+        persistentVolumeClaim:
+          claimName: "{{inputs.parameters.pvc-name}}"
+    container:
+      image: localhost:5000/osgeo:latest
+      command: [python3, waterSurf_Mask.py, --src, "/tmp/", --dst, "/home/", --date, "{{inputs.parameters.date}}", --tile, "{{inputs.parameters.tile}}"]
+      volumeMounts:
+      - name: workdir
+        mountPath: /tmp
+    outputs:
+      artifacts:
+      - name: output-art
+        path: /home
+        archive:
+          none: {}
+        s3:
+          key: output
+          
+  - name: base-pipeline
+    serviceAccountName: argo
+    inputs:
+      parameters:
+       - name: tile
+       - name: date
+    steps:
+    - - name: generate-volume
+        template: generate-volume
+    - - name: ndpi
+        template: ndpi
+        arguments:
+          parameters:
+           - name: pvc-name
+             value: "{{steps.generate-volume.outputs.parameters.pvc-name}}"
+           - name: tile
+             value: "{{inputs.parameters.tile}}"
+           - name: date
+             value: "{{inputs.parameters.date}}"
+    - - name: water-mask
+        template: water-mask
+        arguments:
+          parameters:
+           - name: pvc-name
+             value: "{{steps.generate-volume.outputs.parameters.pvc-name}}"
+           - name: tile
+             value: "{{inputs.parameters.tile}}"
+           - name: date
+             value: "{{inputs.parameters.date}}"
+
+  - name: source
+    serviceAccountName: argo
+    inputs:
+      parameters:
+        - name: pairs-list
+    steps:
+    - - name: base-pipeline
+        template: base-pipeline
+        arguments:
+          parameters:
+            - name: tile
+              value: "{{item.tile}}"
+            - name: date
+              value: "{{item.date}}"
+        withParam: "{{inputs.parameters.pairs-list}}"

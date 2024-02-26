@@ -1,0 +1,4 @@
+ndpi/input/SENTINEL2A_20210115-105852-555_L2A_T31TCJ_C_V2-2_FRE_B4.tif
+ndpi/input/SENTINEL2A_20210115-105852-555_L2A_T31TCJ_C_V2-2_FRE_B8.tif
+waterSurf_Mask/input/NDPI_20210115_T31TCJ.tif
+waterSurf_Mask/output/WaterSurf_mask_20210115_T31TCJ.tif
