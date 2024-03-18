@@ -86,5 +86,5 @@ Les résultats sont stockés dans `argo-bucket/output`
 
 ## To-do list
 - [ ] Choisir le nombre de pods max à lancer et distribuer les images sur ces pods
-- [ ] Utiliser les images super-résolue à 5m
+- [x] Utiliser les images super-résolue à 5m
 - [ ] Ajouter la partie vectorisation
