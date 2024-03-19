@@ -3,6 +3,7 @@ import rioxarray as riox
 from shapely.geometry import box, mapping, Polygon, MultiPolygon
 import numpy as np
 import cv2
+import argparse
 
 
 # [longitude, latitude] -> [longitude, latitude]
@@ -65,9 +66,9 @@ def get_lake(geometry, idx, date, tuile, raster, whole_lake):
              })
 
 
-def vectorize(inpe_path, raster_path, dst, date, tuile):
-    data = gpd.read_file(inpe_path)
-    img = riox.open_rasterio(raster_path).squeeze()
+def vectorize(inpe, src, dst, date, tuile):
+    data = gpd.read_file(inpe)
+    img = riox.open_rasterio(src).squeeze()
 
     # CRS Lambert 93
     img = img.rio.write_nodata(0, inplace=True)
@@ -88,3 +89,15 @@ def vectorize(inpe_path, raster_path, dst, date, tuile):
 
     return
 
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--inpe', help='INPE geopackage lake database for the dedicated raster.')
+    parser.add_argument('--src', help='WaterSurf_mask raster.')
+    parser.add_argument('--dst', help='Destination of result geopackage')
+    parser.add_argument('--date', help='Raster date')
+    parser.add_argument('--tile', help='Raster tile')
+
+    args = parser.parse_args()
+    vectorize(args.inpe, args.src, args.dst, args.date, args.tile)
