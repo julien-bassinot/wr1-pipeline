@@ -94,6 +94,6 @@ Les résultats sont stockés dans `argo-bucket/output`
 
 ## To-do list
 - [x] Ajouter la partie vectorisation
-- [ ] Choisir le nombre de pods max à lancer avec `parallelism`, passer en dag si besoin.
+- [x] Choisir le nombre de pods max à lancer avec `parallelism`, passer en dag si besoin.
 - [ ] Utiliser les fichiers zippés super-résolution à 5m. Adapter la taille du PV.
 - [ ] Remplacer les persistentVolumeClaim par des artifacts. Tester les deux versions en terme de coût / rapidité.

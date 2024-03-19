@@ -4,6 +4,7 @@ metadata:
   generateName: wr1-
 spec:
   entrypoint: source
+  parallelism: 2
   arguments:
     parameters:
       - name: pairs-list
