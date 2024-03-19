@@ -54,8 +54,16 @@ docker tag osgeo:latest localhost:5000/osgeo:latest
 docker push localhost:5000/osgeo:latest
 ```
 
+```shell
+cd vectorize
+sudo docker build -t riogeo:latest
+docker tag riogeo:latest localhost:5000/riogeo:latest
+docker push localhost:5000/riogeo:latest
+```
+
 L'image orfeo permet d'utiliser la librairie [OTB](https://www.orfeo-toolbox.org/CookBook/index.html) tandis que l'image
-osgeo permet d'exécuter du code de la librairie [gdal](https://gdal.org/programs/index.html)
+osgeo permet d'exécuter du code de la librairie [gdal](https://gdal.org/programs/index.html). L'image riogeo contient les bibliothèques rioxarray, 
+geopandas et opencv.
 
 
 ## Lancement de la pipeline Argo-Workflows
@@ -85,6 +93,7 @@ Les résultats sont stockés dans `argo-bucket/output`
 
 
 ## To-do list
-- [ ] Choisir le nombre de pods max à lancer et distribuer les images sur ces pods
-- [x] Utiliser les images super-résolue à 5m
-- [ ] Ajouter la partie vectorisation
+- [x] Ajouter la partie vectorisation
+- [ ] Choisir le nombre de pods max à lancer avec `parallelism`, passer en dag si besoin.
+- [ ] Utiliser les fichiers zippés super-résolution à 5m. Adapter la taille du PV.
+- [ ] Remplacer les persistentVolumeClaim par des artifacts. Tester les deux versions en terme de coût / rapidité.

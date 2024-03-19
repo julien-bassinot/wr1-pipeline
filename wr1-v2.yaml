@@ -45,18 +45,18 @@ spec:
         - name: tile
         - name: date
       artifacts:
-        - name: B4
-          path: /tmp/input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B4.tif
+        - name: B3
+          path: /tmp/input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B3.tif
           archive:
             none: {}
           s3:
-            key: input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B4.tif
-        - name: B8
-          path: /tmp/input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B8.tif
+            key: input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B3.tif
+        - name: B11
+          path: /tmp/input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B11.tif
           archive:
             none: {}
           s3:
-            key: input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B8.tif
+            key: input/SENTINEL2A_{{inputs.parameters.date}}-105852-555_L2A_{{inputs.parameters.tile}}_C_V2-2_FRE_B11.tif
     volumes:
       - name: workdir
         persistentVolumeClaim:
@@ -64,7 +64,7 @@ spec:
     container:
       image: localhost:5000/orfeo:latest
       command: [python3, /usr/local/bin/ndpi.py]
-      args: [--src, "{{inputs.artifacts.B4.path}}", "{{inputs.artifacts.B8.path}}", --dst, "/home/", --date, "{{inputs.parameters.date}}", --tile, "{{inputs.parameters.tile}}"]
+      args: [--src, "{{inputs.artifacts.B3.path}}", "{{inputs.artifacts.B11.path}}", --dst, "/home/", --date, "{{inputs.parameters.date}}", --tile, "{{inputs.parameters.tile}}"]
       volumeMounts:
         - name: workdir
           mountPath: /home
@@ -82,10 +82,43 @@ spec:
           claimName: "{{inputs.parameters.pvc-name}}"
     container:
       image: localhost:5000/osgeo:latest
-      command: [python3, waterSurf_Mask.py, --src, "/tmp/", --dst, "/home/", --date, "{{inputs.parameters.date}}", --tile, "{{inputs.parameters.tile}}"]
+      command: [python3, waterSurf_Mask.py, --src, "/tmp/", --dst, "/tmp/", --date, "{{inputs.parameters.date}}", --tile, "{{inputs.parameters.tile}}"]
       volumeMounts:
       - name: workdir
         mountPath: /tmp
+ #   outputs:
+ #     artifacts:
+ #     - name: output-art
+ #       path: /home
+ #       archive:
+ #         none: {}
+ #       s3:
+ #         key: output
+
+  - name: vectorize
+    serviceAccountName: argo
+    inputs:
+      parameters:
+        - name: pvc-name
+        - name: tile
+        - name: date
+      artifacts:
+        - name: inpe
+          path: /tmp/inpe/{{inputs.parameters.tile}}.gpkg
+          archive:
+            none: { }
+          s3:
+            key: input/{{inputs.parameters.tile}}.gpkg
+    volumes:
+      - name: workdir
+        persistentVolumeClaim:
+          claimName: "{{inputs.parameters.pvc-name}}"
+    container:
+      image: localhost:5000/riogeo:latest
+      command: [python, vectorize.py, --inpe, "{{inputs.artifacts.inpe.path}}", --src, "/tmp/WaterSurf_mask_{{inputs.parameters.date}}_{{inputs.parameters.tile}}.tif", --dst, "/home/{{inputs.parameters.tile}}_{{inputs.parameters.date}}.gpkg", --date, "{{inputs.parameters.date}}", --tile, "{{inputs.parameters.tile}}"]
+      volumeMounts:
+        - name: workdir
+          mountPath: /tmp/
     outputs:
       artifacts:
       - name: output-art
@@ -124,6 +157,16 @@ spec:
              value: "{{inputs.parameters.tile}}"
            - name: date
              value: "{{inputs.parameters.date}}"
+    - - name: vectorize
+        template: vectorize
+        arguments:
+          parameters:
+            - name: pvc-name
+              value: "{{steps.generate-volume.outputs.parameters.pvc-name}}"
+            - name: tile
+              value: "{{inputs.parameters.tile}}"
+            - name: date
+              value: "{{inputs.parameters.date}}"
 
   - name: source
     serviceAccountName: argo
