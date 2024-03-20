@@ -4,6 +4,7 @@ from shapely.geometry import box, mapping, Polygon, MultiPolygon
 import numpy as np
 import cv2
 import argparse
+import logging
 
 
 # [longitude, latitude] -> [longitude, latitude]
@@ -91,7 +92,6 @@ def vectorize(inpe, src, dst, date, tuile):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--inpe', help='INPE geopackage lake database for the dedicated raster.')
     parser.add_argument('--src', help='WaterSurf_mask raster.')
@@ -99,5 +99,11 @@ if __name__ == "__main__":
     parser.add_argument('--date', help='Raster date')
     parser.add_argument('--tile', help='Raster tile')
 
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S')
+
+    logging.info('sub-process started.')
     args = parser.parse_args()
     vectorize(args.inpe, args.src, args.dst, args.date, args.tile)

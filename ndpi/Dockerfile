@@ -1,6 +1,6 @@
 FROM orfeotoolbox/otb:latest
 
-COPY ndpi.py /usr/local/bin/ndpi.py
-RUN chmod +x /usr/local/bin/ndpi.py
+COPY ndpi.py /app/ndpi.py
+RUN chmod a+x /app/ndpi.py
 
-ENTRYPOINT [ "python3", "/usr/local/bin/ndpi.py" ]
+ENTRYPOINT [ "python3", "/app/ndpi.py" ]

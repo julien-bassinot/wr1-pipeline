@@ -1,0 +1,171 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: wr1-
+spec:
+  entrypoint: source
+  parallelism: 1
+  arguments:
+    parameters:
+      - name: pairs-list
+        value: |
+          [
+            { "date": "20220115", "tile": "T31TCJ" }
+          ]
+# { "date": "20231015", "tile": "T31TCJ" }
+
+  templates:
+
+  - name: generate-volume
+    serviceAccountName: argo
+    resource:
+      action: create
+      setOwnerReference: true
+      manifest: |
+        apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          generateName: pvc-
+        spec:
+          accessModes: ['ReadWriteOnce']
+          resources:
+            requests:
+              storage: 3Gi
+    outputs:
+      parameters:
+        - name: pvc-name
+          valueFrom:
+            jsonPath: '{.metadata.name}'
+
+  - name: ndpi
+    serviceAccountName: argo
+    inputs:
+      parameters:
+        - name: pvc-name
+        - name: tile
+        - name: date
+      artifacts:
+        - name: sr_folder
+          path: /tmp/sr_folder
+          s3:
+            key: input/SENTINEL2X_{{inputs.parameters.date}}_L3A_{{inputs.parameters.tile}}.tgz
+    volumes:
+      - name: workdir
+        persistentVolumeClaim:
+          claimName: "{{inputs.parameters.pvc-name}}"
+    container:
+      image: localhost:5000/orfeo:latest
+      command: [python3, /app/ndpi.py]
+      args: [--src, "/tmp/sr_folder/R5m/B3_5m.tif", "/tmp/sr_folder/R5m/B11_5m.tif", --dst, "/home/NDPI.tif"]
+      volumeMounts:
+        - name: workdir
+          mountPath: /home
+
+  - name: water-mask
+    serviceAccountName: argo
+    inputs:
+      parameters:
+        - name: pvc-name
+        - name: date
+        - name: tile
+    volumes:
+      - name: workdir
+        persistentVolumeClaim:
+          claimName: "{{inputs.parameters.pvc-name}}"
+    container:
+      image: localhost:5000/osgeo:latest
+      command: [python3, /app/waterSurf_Mask.py]
+      args: [--src, "/tmp/NDPI.tif", --dst, "/tmp/MASK.tif"]
+      volumeMounts:
+        - name: workdir
+          mountPath: /tmp
+
+  - name: vectorize
+    serviceAccountName: argo
+    inputs:
+      parameters:
+        - name: pvc-name
+        - name: tile
+        - name: date
+      artifacts:
+        - name: inpe-db
+          path: /tmp/inpe.gpkg
+          archive:
+            none: {}
+          s3:
+            key: input/{{inputs.parameters.tile}}.gpkg
+    volumes:
+      - name: workdir
+        persistentVolumeClaim:
+          claimName: "{{inputs.parameters.pvc-name}}"
+    container:
+      image: localhost:5000/riogeo:latest
+      command: [python, /app/vectorize.py]
+      args: [--inpe, "/tmp/inpe.gpkg", --src, "/tmp/MASK.tif", --dst, "/tmp/db.gpkg", --date, "{{inputs.parameters.date}}", --tile, "{{inputs.parameters.tile}}"]
+      volumeMounts:
+        - name: workdir
+          mountPath: /tmp
+    outputs:
+      artifacts:
+      - name: wr1_db
+        path: /tmp/db.gpkg
+        archive:
+          none: {}
+        s3:
+          key: output/{{inputs.parameters.tile}}_{{inputs.parameters.date}}.gpkg
+
+  - name: base-pipeline
+    serviceAccountName: argo
+    inputs:
+      parameters:
+       - name: tile
+       - name: date
+    steps:
+    - - name: generate-volume
+        template: generate-volume
+    - - name: ndpi
+        template: ndpi
+        arguments:
+          parameters:
+           - name: pvc-name
+             value: "{{steps.generate-volume.outputs.parameters.pvc-name}}"
+           - name: tile
+             value: "{{inputs.parameters.tile}}"
+           - name: date
+             value: "{{inputs.parameters.date}}"
+    - - name: water-mask
+        template: water-mask
+        arguments:
+          parameters:
+           - name: pvc-name
+             value: "{{steps.generate-volume.outputs.parameters.pvc-name}}"
+           - name: tile
+             value: "{{inputs.parameters.tile}}"
+           - name: date
+             value: "{{inputs.parameters.date}}"
+    - - name: vectorize
+        template: vectorize
+        arguments:
+          parameters:
+            - name: pvc-name
+              value: "{{steps.generate-volume.outputs.parameters.pvc-name}}"
+            - name: tile
+              value: "{{inputs.parameters.tile}}"
+            - name: date
+              value: "{{inputs.parameters.date}}"
+
+  - name: source
+    serviceAccountName: argo
+    inputs:
+      parameters:
+        - name: pairs-list
+    steps:
+    - - name: base-pipeline
+        template: base-pipeline
+        arguments:
+          parameters:
+            - name: tile
+              value: "{{item.tile}}"
+            - name: date
+              value: "{{item.date}}"
+        withParam: "{{inputs.parameters.pairs-list}}"

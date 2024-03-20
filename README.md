@@ -56,7 +56,7 @@ docker push localhost:5000/osgeo:latest
 
 ```shell
 cd vectorize
-sudo docker build -t riogeo:latest
+sudo docker build -t riogeo:latest .
 docker tag riogeo:latest localhost:5000/riogeo:latest
 docker push localhost:5000/riogeo:latest
 ```
@@ -95,5 +95,6 @@ Les résultats sont stockés dans `argo-bucket/output`
 ## To-do list
 - [x] Ajouter la partie vectorisation
 - [x] Choisir le nombre de pods max à lancer avec `parallelism`, passer en dag si besoin.
-- [ ] Utiliser les fichiers zippés super-résolution à 5m. Adapter la taille du PV.
-- [ ] Remplacer les persistentVolumeClaim par des artifacts. Tester les deux versions en terme de coût / rapidité.
+- [x] Utiliser les fichiers zippés super-résolution à 5m. Adapter la taille du PV.
+- [x] Remplacer les persistentVolumeClaim par des artifacts. Tester les deux versions en terme de coût / rapidité.
+- [ ] Découper la base inpe par tuile

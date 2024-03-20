@@ -1,13 +1,12 @@
 import os
 import argparse
+import logging
 
 
-def waterSurf_Mask(src: str, dst: str, date: str, tile: str) -> None:
+def waterSurf_Mask(src: str, dst: str) -> None:
     """
-    :param src: The directory where the input image files are stored.
-    :param dst: The directory where the output files will be saved.
-    :param date: The date of the image.
-    :param tile: The tile number of the image.
+    :param src: The source image path.
+    :param dst: The destination path where the mask will be saved.
     :return: None
 
     This method generates a water surface mask for a given image file.
@@ -15,27 +14,26 @@ def waterSurf_Mask(src: str, dst: str, date: str, tile: str) -> None:
     The expression used is "1*(A<0)", where `A` represents the input image.
 
     Example usage:
-        src = "/tmp/"
-        dst = "/home/"
-        date = "20210115"
-        tile = "T31TCJ"
-        waterSurf_Mask(src, dst, date, tile)
+        src = "/tmp/NDPI_20210115_T31TCJ.tif"
+        dst = "/home/WaterSurf_mask_20210115_T31TCJ.tif"
+        waterSurf_Mask(src, dst)
     """
-    img_in = src + "NDPI" + "_" + date + "_" + tile + ".tif"
     expr = '\"1*(A<0)\"'
-    mask_out = dst + "WaterSurf_mask_" + date + "_" + tile + ".tif"
-    cmd_mask = "gdal_calc.py -A " + img_in + " --type=Byte --outfile=" + mask_out + " --calc=" + expr
+    cmd_mask = "gdal_calc.py -A " + src + " --type=Byte --outfile=" + dst + " --calc=" + expr
     os.system(cmd_mask)
     return
     
 
 if __name__ == "__main__":
-    
     parser = argparse.ArgumentParser()
-    parser.add_argument('--src', help='Source directory containing the input files.')
-    parser.add_argument('--dst', help='Destination')
-    parser.add_argument('--date', help='Date')
-    parser.add_argument('--tile', help='Tile')
-    
+    parser.add_argument('--src', help='Source image path.')
+    parser.add_argument('--dst', help='Destination image path')
+
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S')
+
+    logging.info('sub-process started.')
     args = parser.parse_args()
-    waterSurf_Mask(args.src, args.dst, args.date, args.tile)
+    waterSurf_Mask(args.src, args.dst)
