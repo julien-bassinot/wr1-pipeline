@@ -91,7 +91,6 @@ Observer l'état de la pipeline sur l'interface utilisateur d'Argo à l'adresse 
 Les résultats sont stockés dans `argo-bucket/output`
 
 
-
 ## To-do list
 - [x] Ajouter la partie vectorisation
 - [x] Choisir le nombre de pods max à lancer avec `parallelism`, passer en dag si besoin.
