@@ -34,8 +34,8 @@ def array_to_raster(vignette_mask, frame, frame_img, raster):
     vignette_tiff = xr.DataArray(
         data=vignette_mask.astype(np.uint8) *255,
         coords={
-            'x': green.coords['x'][frame_img[0][0]: frame_img[1][0]].values,
-            'y': green.coords['y'][frame_img[0][1]: frame_img[1][1]].values,
+            'x': raster.coords['x'][frame_img[0][0]: frame_img[1][0]].values,
+            'y': raster.coords['y'][frame_img[0][1]: frame_img[1][1]].values,
             'band': 1,
             'spatial_ref': 0
         },
