@@ -174,17 +174,20 @@ def main(workdir, tuile, date, B2, B3, B4, B11, inpe):
         contours = resolve_geometries(contours, 10)
         inpe_poly = resolve_geometries(inpe_poly, 10)
         if len(contours) == 0:
-            cv2.imwrite(f'{workdir}/visualisation_{date}_{tuile}/NOVECTOR/{data.loc[i, 'id']}_{date}_{tuile}.png', vignette_world)
+            ID = data.loc[i, 'id']
+            cv2.imwrite(f'{workdir}/visualisation_{date}_{tuile}/NOVECTOR/{ID}_{date}_{tuile}.png', vignette_world)
         is_contour = False
         for contour in contours:
             if np.any([contour.intersects(inpe_poly[j]) for j in range(len(inpe_poly))]):
                 is_contour = True
                 cv2.drawContours(vignette_world, [np.array(contour.exterior.coords, dtype=np.int32)], 0, (255, 0, 0), 1)
-            cv2.imwrite(f'{workdir}/visualisation_{date}_{tuile}/VECTOR/{data.loc[i, 'id']}_{date}_{tuile}.png', vignette_world)
+            ID = data.loc[i, 'id']
+            cv2.imwrite(f'{workdir}/visualisation_{date}_{tuile}/VECTOR/{ID}_{date}_{tuile}.png', vignette_world)
         if not is_contour:
             for contour in contours:
                 cv2.drawContours(vignette_world, [np.array(contour.exterior.coords, dtype=np.int32)], 0, (255, 0, 0), 1)
-            cv2.imwrite(f'{workdir}/visualisation_{date}_{tuile}/NOVECTOR/{data.loc[i, 'id']}_{date}_{tuile}.png', vignette_world)
+            ID = data.loc[i, 'id']
+            cv2.imwrite(f'{workdir}/visualisation_{date}_{tuile}/NOVECTOR/{ID}_{date}_{tuile}.png', vignette_world)
     return
 
 
