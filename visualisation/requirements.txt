@@ -1,0 +1,6 @@
+geopandas==0.14.3
+rioxarray==0.15.1
+shapely==2.0.3
+numpy==1.26.4
+opencv-python==4.9.0.80
+tqdm==4.66.2
