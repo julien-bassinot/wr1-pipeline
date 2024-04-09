@@ -7,5 +7,4 @@ RUN pip install -r requirements.txt
 
 COPY vectorize.py /app/vectorize.py
 
-# ENTRYPOINT [ "python", "/app/vectorize.py" ]
-ENTRYPOINT [ "/bin/bash" ]
+ENTRYPOINT [ "python", "/app/vectorize.py" ]
